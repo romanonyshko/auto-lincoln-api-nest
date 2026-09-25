@@ -43,12 +43,19 @@ zod 4 · jose (JWT).
 
 - `prisma/` (root) — `schema.prisma`, `migrations/`; read by `prisma.config.ts`.
   Not app code, not compiled.
-- `src/prisma/` — `PrismaService` (extends the generated `PrismaClient`) and a
-  `@Global()` `PrismaModule`.
-- `src/common/zod-validation.pipe.ts` — validates `@Body()` with a schema from
-  the contracts; message is one string (`z.prettifyError`) to match `ApiErrorSchema`.
-- `src/auth/` — `password.ts` (scrypt `salt:keyHex`), `session.ts` (HS256 JWT,
-  7 days), `auth.service.ts`, `auth.controller.ts`, `to-login-response.ts`.
+- `src/config/env.ts` — required env variables.
+- `src/core/prisma/` — `PrismaService` (extends the generated `PrismaClient`)
+  and a `@Global()` `PrismaModule`. `src/core/` = infrastructure.
+- `src/common/pipes/zod-validation.pipe.ts` — validates `@Body()` with a schema
+  from the contracts; message is one string (`z.prettifyError`) to match
+  `ApiErrorSchema`. `src/common/` = reusable by any feature.
+- `src/modules/<feature>/` — one folder per feature: `*.module.ts`,
+  `*.controller.ts`, `*.service.ts` at the top; helpers in subfolders.
+- `src/modules/auth/` — `guards/auth.guard.ts`, `decorators/`,
+  `lib/password.ts` (scrypt `salt:keyHex`), `lib/session.ts` (HS256 JWT, 7 days,
+  cookie options, `Session` type), `mappers/to-login-response.ts`,
+  `types/express.d.ts` (adds `req.session`).
+- `UserRole` and other enums come from `src/db/generated/prisma/enums.js`.
 - `tsconfig.json` is for the editor (src + prisma + `prisma.config.ts`);
   `tsconfig.build.json` builds only `src`.
 
@@ -71,7 +78,7 @@ Next: `GET /api/auth/me` + `AuthGuard` + `@CurrentSession()`,
 - DB models never leave the API as-is — map them to contract types.
 - Set `@HttpCode` on POST routes (login 200, logout 204).
 - Cookie `al_session`: `httpOnly`, `sameSite: 'lax'`, `path: '/'`, `secure` in production.
-- Relative imports end in `.js`. One module per feature, kebab-case files.
+- Relative imports end in `.js`. One module per feature (in `src/modules/`), kebab-case files.
 
 ## How to work with me
 
