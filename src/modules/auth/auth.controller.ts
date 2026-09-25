@@ -1,12 +1,14 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common'
-import type { Response, Request } from 'express'
+import { Body, Controller, Get, HttpCode, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common'
+import type { Response } from 'express'
 import { AUTH_COOKIE_NAME, LoginRequestSchema, type LoginRequest, type LoginResponse } from '@auto-lincoln/contracts'
 import { AuthService } from './auth.service.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
-import { signSession, SESSION_MAX_AGE_MS, SESSION_COOKIE_OPTIONS } from './lib/session.js'
+import { signSession, SESSION_MAX_AGE_MS, SESSION_COOKIE_OPTIONS, type Session } from './lib/session.js'
 import { toLoginResponse } from './mappers/to-login-response.js'
 import { env } from '../../config/env.js'
 import { AuthGuard } from './guards/auth.guard.js'
+import { CurrentSession } from './decorators/current-session.decorator.js'
+
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
@@ -32,7 +34,16 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuard)
-    me(@Req() req: Request) {
-        return req.session
+    async me(@CurrentSession() session: Session): Promise<LoginResponse> {
+        const user = await this.authService.findById(session.userId)
+        if (!user) throw new UnauthorizedException('Not authenticated')
+        return toLoginResponse(user)
     }
+
+    @Post('logout')
+    @HttpCode(204)
+    logout(@Res({ passthrough: true }) res: Response): void {
+        res.clearCookie(AUTH_COOKIE_NAME, SESSION_COOKIE_OPTIONS)
+    }
+
 }
