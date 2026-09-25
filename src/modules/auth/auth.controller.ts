@@ -2,11 +2,11 @@ import { Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException,
 import type { Response, Request } from 'express'
 import { AUTH_COOKIE_NAME, LoginRequestSchema, type LoginRequest, type LoginResponse } from '@auto-lincoln/contracts'
 import { AuthService } from './auth.service.js'
-import { ZodValidationPipe } from '../common/zod-validation.pipe.js'
-import { signSession, SESSION_MAX_AGE_MS, SESSION_COOKIE_OPTIONS } from './session.js'
-import { toLoginResponse } from './to-login-response.js'
-import { env } from '../config/env.js'
-import { AuthGuard } from './auth.guard.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { signSession, SESSION_MAX_AGE_MS, SESSION_COOKIE_OPTIONS } from './lib/session.js'
+import { toLoginResponse } from './mappers/to-login-response.js'
+import { env } from '../../config/env.js'
+import { AuthGuard } from './guards/auth.guard.js'
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) { }

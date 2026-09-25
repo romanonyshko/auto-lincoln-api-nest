@@ -1,8 +1,8 @@
 import { AUTH_COOKIE_NAME } from "@auto-lincoln/contracts";
 import { Injectable, UnauthorizedException, type CanActivate, type ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
-import { verifySession } from "./session.js";
-import { env } from "../config/env.js";
+import { verifySession } from "../lib/session.js";
+import { env } from "../../../config/env.js";
 
 @Injectable()
 export class AuthGuard implements CanActivate {

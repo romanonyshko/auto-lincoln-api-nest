@@ -1,5 +1,5 @@
 import type { CookieOptions } from 'express'
-import type { UserRole } from '../shared/index.js'
+import type { UserRole } from '../../../db/generated/prisma/enums.js'
 import { jwtVerify, SignJWT } from 'jose'
 
 export const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000

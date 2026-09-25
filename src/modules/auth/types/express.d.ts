@@ -1,4 +1,4 @@
-import type { Session } from './session.js'
+import type { Session } from '../lib/session.js'
 
 declare global {
   namespace Express {

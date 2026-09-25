@@ -1,8 +1,8 @@
 
 import { Injectable } from '@nestjs/common'
-import { verifyPassword } from './password.js'
-import { PrismaService } from '../prisma/prisma.service.js'
-import type { User } from '../db/generated/prisma/client.js'
+import { verifyPassword } from './lib/password.js'
+import { PrismaService } from '../../core/prisma/prisma.service.js'
+import type { User } from '../../db/generated/prisma/client.js'
 
 @Injectable()
 export class AuthService {
