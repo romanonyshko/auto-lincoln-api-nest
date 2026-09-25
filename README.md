@@ -66,8 +66,8 @@ after `prisma migrate reset` or `docker compose down -v` there are no users.
 | --- | --- | --- |
 | GET | `/api/health` | 200 `{ status: 'ok' }` (runs `SELECT 1`) |
 | POST | `/api/auth/login` | 200 `{ id, email, name }` + `al_session` cookie · 400 · 401 |
-| GET | `/api/auth/me` | 200 current user · 401 — *in progress* |
-| POST | `/api/auth/logout` | 204, cookie cleared — *planned* |
+| GET | `/api/auth/me` | 200 `{ id, email, name }` · 401 |
+| POST | `/api/auth/logout` | 204, cookie cleared (no auth required) |
 
 Errors: `{ message, statusCode, error? }`.
 
@@ -102,6 +102,7 @@ src/
 │   └── auth/
 │       ├── auth.module.ts · auth.controller.ts · auth.service.ts
 │       ├── guards/         AuthGuard — reads the cookie, sets req.session
+│       ├── decorators/     @CurrentSession() — gives the controller req.session
 │       ├── lib/            password.ts (scrypt), session.ts (JWT, cookie options)
 │       ├── mappers/        DB model → contract type
 │       └── types/          express.d.ts — adds req.session

@@ -62,9 +62,11 @@ zod 4 · jose (JWT).
 ## State
 
 Done: Prisma wired up, `GET /api/health` (runs `SELECT 1`),
-`POST /api/auth/login` (200 + `al_session` cookie / 401 / 400).
-Next: `GET /api/auth/me` + `AuthGuard` + `@CurrentSession()`,
-`POST /api/auth/logout` (204, no guard); then move the web to the new contracts.
+`POST /api/auth/login` (200 + `al_session` cookie / 401 / 400),
+`GET /api/auth/me` (`AuthGuard` + `@CurrentSession()`, 200 / 401),
+`POST /api/auth/logout` (204, no guard, `clearCookie` with `SESSION_COOKIE_OPTIONS`).
+Next: move the web to the new contracts; move `prisma/seed.ts` here from
+`../архів/auto-lincoln-contracts/prisma/` (users exist only in the Docker volume).
 
 ## Rules
 
