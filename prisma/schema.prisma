@@ -1,0 +1,98 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/db/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  manager
+  client
+}
+
+enum Currency {
+  EUR
+  USD
+  UAH
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  role         UserRole @default(manager)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Category {
+  id    String @id @default(uuid())
+  title String
+  image String
+  order Int
+
+  parts Part[]
+
+  @@map("categories")
+}
+
+model Carmaker {
+  id   String @id @default(uuid())
+  name String @unique
+
+  models CarModel[]
+
+  @@map("carmakers")
+}
+
+model CarModel {
+  id         String @id @default(uuid())
+  carmakerId String
+  name       String
+
+  carmaker Carmaker @relation(fields: [carmakerId], references: [id], onDelete: Cascade)
+  engines  Engine[]
+
+  @@unique([carmakerId, name])
+  @@map("car_models")
+}
+
+model Engine {
+  id      String @id @default(uuid())
+  modelId String
+  name    String
+
+  model CarModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  parts Part[]
+
+  @@unique([modelId, name])
+  @@map("engines")
+}
+
+model Part {
+  id            String   @id @default(uuid())
+  categoryId    String
+  title         String
+  articleNumber String   @unique
+  brand         String
+  price         Decimal  @db.Decimal(10, 2)
+  currency      Currency
+  inStock       Int      @default(0)
+  image         String?
+  createdAt     DateTime @default(now())
+
+  category          Category @relation(fields: [categoryId], references: [id])
+  // Many-to-many: engines this part fits.
+  compatibleEngines Engine[]
+
+  @@index([categoryId])
+  @@map("parts")
+}
