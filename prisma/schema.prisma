@@ -21,6 +21,69 @@ enum Currency {
   UAH
 }
 
+enum RequestStatus {
+  pending
+  approved
+  spam
+  trash
+}
+
+model DashboardStat {
+  id           String @id
+  label        String
+  value        String
+  deltaPercent Int?
+  order        Int
+
+  @@map("dashboard_stats")
+}
+
+model MonthlyActivity {
+  id       String   @id @default(uuid())
+  month    DateTime @unique @db.Date
+  visitors Int
+
+  @@map("monthly_activity")
+}
+
+model News {
+  id          String   @id @default(uuid())
+  title       String
+  publishedAt DateTime
+
+  reviews Review[]
+
+  @@map("news")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  newsId    String
+  author    String
+  text      String
+  createdAt DateTime @default(now())
+
+  news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@index([newsId])
+  @@map("reviews")
+}
+
+model Page {
+  id    String @id @default(uuid())
+  title String
+
+  @@map("pages")
+}
+
+model Request {
+  id        String        @id @default(uuid())
+  status    RequestStatus @default(pending)
+  createdAt DateTime      @default(now())
+
+  @@map("requests")
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique

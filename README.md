@@ -23,6 +23,7 @@ cp .env.example .env          # then set JWT_SECRET: openssl rand -base64 48
 docker compose up -d          # PostgreSQL on :5432
 npx prisma migrate dev        # apply migrations
 npx prisma generate           # client → src/db/generated/prisma
+npx prisma db seed            # demo data for the dashboard
 npm run dev                   # http://localhost:3002/api/health
 ```
 
@@ -44,9 +45,10 @@ The API fails on startup if a variable is missing (`src/config/env.ts`).
 | admin | `admin@autolincoln.local` | `admin12345` |
 | manager | `test@autolincoln.local` | `test12345` |
 
-Local only. They are already in the Docker volume. `prisma/seed.ts` is not in
-this repo yet (it is still in `../архів/auto-lincoln-contracts/prisma/`), so
-after `prisma migrate reset` or `docker compose down -v` there are no users.
+Local only. They are already in the Docker volume. `prisma/seed.ts` does not
+create users yet (the old user seed is still in
+`../архів/auto-lincoln-contracts/prisma/`), so after `prisma migrate reset` or
+`docker compose down -v` there are no users.
 
 ## Commands
 
@@ -57,7 +59,8 @@ after `prisma migrate reset` or `docker compose down -v` there are no users.
 | `npm run build` | build to `dist/` (`tsconfig.build.json`) |
 | `npm start` | run `dist/main.js` |
 | `npx prisma migrate dev --name <name>` | create and apply a migration |
-| `npx prisma generate` | regenerate the Prisma client |
+| `npx prisma generate` | regenerate the Prisma client (run it after every migration) |
+| `npx prisma db seed` | fill the dashboard tables with demo data (`prisma/seed.ts`, safe to re-run) |
 | `npx tsc --noEmit -p tsconfig.build.json` | type-check |
 
 ## API
@@ -68,6 +71,18 @@ after `prisma migrate reset` or `docker compose down -v` there are no users.
 | POST | `/api/auth/login` | 200 `{ id, email, name }` + `al_session` cookie · 400 · 401 |
 | GET | `/api/auth/me` | 200 `{ id, email, name }` · 401 |
 | POST | `/api/auth/logout` | 204, cookie cleared (no auth required) |
+| GET | `/api/dashboard` | 200 `DashboardResponse` · 401 |
+
+**Dashboard** (`DashboardResponse` in the contracts) is built from these tables:
+
+| Field | Source |
+| --- | --- |
+| `glance` | `count()` of `news`, `reviews`, `pages` |
+| `latestNews` | newest `news` by `publishedAt`, or `null` |
+| `latestReview` | newest `reviews` by `createdAt` with its news title, or `null` |
+| `requests` | `requests` grouped by `status` (missing statuses → 0) |
+| `stats` | `dashboard_stats` ordered by `order` |
+| `activity` | `monthly_activity` ordered by `month` (`'Jan'`, `'Feb'`, …) |
 
 Errors: `{ message, statusCode, error? }`.
 
@@ -82,12 +97,13 @@ curl -c jar.txt -X POST http://localhost:3002/api/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@autolincoln.local","password":"admin12345"}'
 curl -b jar.txt http://localhost:3002/api/auth/me
+curl -b jar.txt http://localhost:3002/api/dashboard
 ```
 
 ## Project structure
 
 ```
-prisma/                     schema.prisma, migrations (not app code)
+prisma/                     schema.prisma, migrations, seed.ts (not app code)
 prisma.config.ts            Prisma CLI config
 src/
 ├── main.ts                 bootstrap: cookie-parser, /api prefix, CORS
@@ -99,6 +115,7 @@ src/
 │   └── pipes/              ZodValidationPipe (validates @Body with contract schemas)
 ├── modules/                one folder per feature
 │   ├── health/
+│   ├── dashboard/          GET /api/dashboard — service (Promise.all) + mappers/
 │   └── auth/
 │       ├── auth.module.ts · auth.controller.ts · auth.service.ts
 │       ├── guards/         AuthGuard — reads the cookie, sets req.session

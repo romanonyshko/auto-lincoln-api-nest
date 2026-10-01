@@ -37,12 +37,14 @@ zod 4 · jose (JWT).
 | `npm run build` | `nest build` (uses `tsconfig.build.json`) → `dist/` |
 | `npm start` | `node dist/main.js` |
 | `npx prisma migrate dev --name <name>` | new migration |
-| `npx prisma generate` | client → `src/db/generated/prisma` (gitignored) |
+| `npx prisma generate` | client → `src/db/generated/prisma` (gitignored); Prisma 7 `migrate dev` does not run it |
+| `npx prisma db seed` | `tsx prisma/seed.ts` — dashboard demo data, clears and refills its tables |
 
 ## Layout
 
-- `prisma/` (root) — `schema.prisma`, `migrations/`; read by `prisma.config.ts`.
-  Not app code, not compiled.
+- `prisma/` (root) — `schema.prisma`, `migrations/`, `seed.ts`; read by
+  `prisma.config.ts`. Not app code, not compiled. The seed creates its own
+  `PrismaClient` (no Nest DI).
 - `src/config/env.ts` — required env variables.
 - `src/core/prisma/` — `PrismaService` (extends the generated `PrismaClient`)
   and a `@Global()` `PrismaModule`. `src/core/` = infrastructure.
@@ -55,6 +57,10 @@ zod 4 · jose (JWT).
   `lib/password.ts` (scrypt `salt:keyHex`), `lib/session.ts` (HS256 JWT, 7 days,
   cookie options, `Session` type), `mappers/to-login-response.ts`,
   `types/express.d.ts` (adds `req.session`).
+- `src/modules/dashboard/` — service returns raw Prisma results (8 queries in
+  one `Promise.all`); `mappers/to-dashboard-response.ts` turns them into
+  `DashboardResponse` (`Date` → ISO / `'Jan'` with `timeZone: 'UTC'`,
+  `null` → `undefined` for optional fields, missing request statuses → 0).
 - `UserRole` and other enums come from `src/db/generated/prisma/enums.js`.
 - `tsconfig.json` is for the editor (src + prisma + `prisma.config.ts`);
   `tsconfig.build.json` builds only `src`.
@@ -64,9 +70,13 @@ zod 4 · jose (JWT).
 Done: Prisma wired up, `GET /api/health` (runs `SELECT 1`),
 `POST /api/auth/login` (200 + `al_session` cookie / 401 / 400),
 `GET /api/auth/me` (`AuthGuard` + `@CurrentSession()`, 200 / 401),
-`POST /api/auth/logout` (204, no guard, `clearCookie` with `SESSION_COOKIE_OPTIONS`).
-Next: move the web to the new contracts; move `prisma/seed.ts` here from
-`../архів/auto-lincoln-contracts/prisma/` (users exist only in the Docker volume).
+`POST /api/auth/logout` (204, no guard, `clearCookie` with `SESSION_COOKIE_OPTIONS`),
+`GET /api/dashboard` (`AuthGuard`, 200 / 401; tables `news`, `reviews`, `pages`,
+`requests` + enum `RequestStatus`, `dashboard_stats`, `monthly_activity`;
+demo data from `prisma/seed.ts`).
+Next: web dashboard on `GET /api/dashboard` instead of `mock-data.ts`; move the
+web to the new contracts; add users to `prisma/seed.ts` (the old seed is in
+`../архів/auto-lincoln-contracts/prisma/`; users exist only in the Docker volume).
 
 ## Rules
 
