@@ -124,7 +124,7 @@ On success the first message is the greeting.
 | client → server | `{ type: 'message:send', clientId, text }` | user sends a message; `clientId` is a uuid made by the client, `text` is trimmed, 1–1000 chars |
 | server → client | `{ type: 'message:new', message }` | greeting on connect (no `clientId`) and the reply to `message:send` (same `text` and `clientId`) |
 | server → client | `{ type: 'error', code: 'INVALID_JSON', message }` | the message is not JSON |
-| server → client | `{ type: 'error', code: 'VALIDATION_ERROR', message }` | the JSON does not match `ClientChatEventSchema`; `message` is the first zod issue |
+| server → client | `{ type: 'error', code: 'VALIDATION_ERROR', clientId?, message }` | the JSON does not match `ClientChatEventSchema`; `message` is the first zod issue; `clientId` is copied from the request when it is a valid uuid, so the client knows which message failed |
 
 `message` is a `ChatMessage`: `{ id, clientId?, author: 'user' | 'support', text, sentAt }`
 (`id` and `sentAt` are set by the server). Errors keep the connection open.
