@@ -1,0 +1,1 @@
+export const CHAT_GREETING = 'Hello, how can I help you?'

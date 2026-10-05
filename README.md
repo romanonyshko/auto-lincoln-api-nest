@@ -1,8 +1,9 @@
 # auto-lincoln-api-nest
 
-REST API of **Auto Lincoln** — an admin panel for an auto parts catalogue
-(learning project). NestJS + Prisma + PostgreSQL. Runs on
-`http://localhost:3002`, every route is under `/api`.
+REST API of **Auto Lincoln** — an admin panel for an auto parts catalogue.
+NestJS + Prisma + PostgreSQL. Runs on
+`http://localhost:3002`, every REST route is under `/api`; the support chat is
+a WebSocket at `ws://localhost:3002/ws/chat`.
 
 This is the only backend. The HTTP contract (zod schemas, route names, cookie
 name) lives in `../auto-lincoln-contracts` (`@auto-lincoln/contracts`); the web
@@ -11,7 +12,8 @@ app is `../auto-lincoln-web` (`:5173`).
 ## Stack
 
 NestJS 12 (native ESM) · TypeScript 6 · Prisma 7 (`@prisma/adapter-pg`) ·
-PostgreSQL 17 in Docker · zod 4 · jose (JWT) · cookie-parser.
+PostgreSQL 17 in Docker · zod 4 · jose (JWT) · cookie-parser ·
+`@nestjs/platform-ws` (WebSocket, library `ws`).
 
 ## Getting started
 
@@ -100,13 +102,53 @@ curl -b jar.txt http://localhost:3002/api/auth/me
 curl -b jar.txt http://localhost:3002/api/dashboard
 ```
 
+## Support chat (WebSocket)
+
+`ws://localhost:3002/ws/chat` (`WS_ROUTES.chat` in the contracts). For now the
+server greets the user and echoes every message back; nothing is stored.
+
+**Connecting.** The browser sends the `al_session` cookie with the handshake
+by itself. The server checks, in this order:
+
+| Check | If it fails |
+| --- | --- |
+| `Origin` equals `CORS_ORIGIN` | closed with code `4403` |
+| `al_session` is a valid session JWT | closed with code `4401` |
+
+On success the first message is the greeting.
+
+**Events** (JSON, schemas in `@auto-lincoln/contracts`, `chat/messages.ts`):
+
+| Direction | Event | When |
+| --- | --- | --- |
+| client → server | `{ type: 'message:send', clientId, text }` | user sends a message; `clientId` is a uuid made by the client, `text` is trimmed, 1–1000 chars |
+| server → client | `{ type: 'message:new', message }` | greeting on connect (no `clientId`) and the reply to `message:send` (same `text` and `clientId`) |
+| server → client | `{ type: 'error', code: 'INVALID_JSON', message }` | the message is not JSON |
+| server → client | `{ type: 'error', code: 'VALIDATION_ERROR', clientId?, message }` | the JSON does not match `ClientChatEventSchema`; `message` is the first zod issue; `clientId` is copied from the request when it is a valid uuid, so the client knows which message failed |
+
+`message` is a `ChatMessage`: `{ id, clientId?, author: 'user' | 'support', text, sentAt }`
+(`id` and `sentAt` are set by the server). Errors keep the connection open.
+
+**Limitations:** no history — a reconnect starts an empty chat with a new
+greeting; one user talks only to the server, not to other users.
+
+Try it with [wscat](https://github.com/websockets/wscat) (take the cookie value
+from `jar.txt` after the login above):
+
+```bash
+npx wscat -c ws://localhost:3002/ws/chat \
+  -H "Origin: http://localhost:5173" \
+  -H "Cookie: al_session=<token>"
+> {"type":"message:send","clientId":"6f1c2a9e-1b7d-4c1e-9a43-3f0d8a2b5c71","text":"hi"}
+```
+
 ## Project structure
 
 ```
 prisma/                     schema.prisma, migrations, seed.ts (not app code)
 prisma.config.ts            Prisma CLI config
 src/
-├── main.ts                 bootstrap: cookie-parser, /api prefix, CORS
+├── main.ts                 bootstrap: cookie-parser, /api prefix, CORS, WsAdapter
 ├── app.module.ts
 ├── config/env.ts           required env variables
 ├── core/                   infrastructure
@@ -116,6 +158,8 @@ src/
 ├── modules/                one folder per feature
 │   ├── health/
 │   ├── dashboard/          GET /api/dashboard — service (Promise.all) + mappers/
+│   ├── chat/               ws /ws/chat — gateway (handshake auth, validation, send)
+│   │                       + service (greeting, echo) + constants
 │   └── auth/
 │       ├── auth.module.ts · auth.controller.ts · auth.service.ts
 │       ├── guards/         AuthGuard — reads the cookie, sets req.session
@@ -127,3 +171,5 @@ src/
 ```
 
 Request pipeline: middleware (cookie-parser) → guard → pipe → controller.
+The WebSocket handshake bypasses this pipeline: the chat gateway checks Origin
+and the cookie itself.
