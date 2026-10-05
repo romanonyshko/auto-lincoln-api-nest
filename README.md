@@ -73,6 +73,7 @@ changes an existing user. Roles are not enforced yet.
 | GET | `/api/auth/me` | 200 `{ id, email, name }` · 401 |
 | POST | `/api/auth/logout` | 204, cookie cleared (no auth required) |
 | GET | `/api/dashboard` | 200 `DashboardResponse` · 401 |
+| GET | `/api/categories` | 200 `CategoriesResponse` (parts categories ordered by `order`) · 401 |
 
 **Dashboard** (`DashboardResponse` in the contracts) is built from these tables:
 
@@ -99,6 +100,7 @@ curl -c jar.txt -X POST http://localhost:3002/api/auth/login \
   -d '{"email":"admin@autolincoln.local","password":"admin12345"}'
 curl -b jar.txt http://localhost:3002/api/auth/me
 curl -b jar.txt http://localhost:3002/api/dashboard
+curl -b jar.txt http://localhost:3002/api/categories
 ```
 
 ## Support chat (WebSocket)
@@ -157,6 +159,8 @@ src/
 ├── modules/                one folder per feature
 │   ├── health/
 │   ├── dashboard/          GET /api/dashboard — service (Promise.all) + mappers/
+│   ├── catalogue/          GET /api/categories — controller per route prefix,
+│   │                       one service, mappers/
 │   ├── chat/               ws /ws/chat — gateway (handshake auth, validation, send)
 │   │                       + service (greeting, echo) + constants
 │   └── auth/
