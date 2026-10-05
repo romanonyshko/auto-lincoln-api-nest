@@ -1,7 +1,7 @@
 # auto-lincoln-api-nest
 
-REST API of **Auto Lincoln** — an admin panel for an auto parts catalogue
-(learning project). NestJS + Prisma + PostgreSQL. Runs on
+REST API of **Auto Lincoln** — an admin panel for an auto parts catalogue.
+NestJS + Prisma + PostgreSQL. Runs on
 `http://localhost:3002`, every REST route is under `/api`; the support chat is
 a WebSocket at `ws://localhost:3002/ws/chat`.
 
