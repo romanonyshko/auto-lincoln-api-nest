@@ -1,7 +1,8 @@
 import { Controller, Get } from "@nestjs/common";
+import { API_ROUTES } from "@auto-lincoln/contracts";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 
-@Controller('health')
+@Controller(API_ROUTES.health)
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
