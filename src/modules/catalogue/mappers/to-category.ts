@@ -1,5 +1,5 @@
 import type { Category } from '@auto-lincoln/contracts';
-import type { Category as CategoryRow } from '../../../db/generated/prisma/client.js';
+import type { CategoryRow } from '../catalogue.service.js';
 
 export function toCategory(row: CategoryRow): Category {
     return {
