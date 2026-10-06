@@ -9,7 +9,22 @@ export const categorySelect = {
     order: true
 } satisfies Prisma.CategorySelect
 
+export const partSelect = {
+    id: true,
+    categoryId: true,
+    title: true,
+    articleNumber: true,
+    brand: true,
+    price: true,
+    currency: true,
+    inStock: true,
+    image: true,
+    createdAt: true,
+    compatibleEngines: { select: { id: true } },
+} satisfies Prisma.PartSelect
+
 export type CategoryRow = Prisma.CategoryGetPayload<{ select: typeof categorySelect }>
+export type PartRow = Prisma.PartGetPayload<{ select: typeof partSelect }>
 
 @Injectable()
 export class CatalogueService {
@@ -19,6 +34,14 @@ export class CatalogueService {
         return this.prisma.category.findMany({
             select: categorySelect,
             orderBy: { order: 'asc' },
+        })
+    }
+
+    async getPartsByCategory(categoryId: string): Promise<PartRow[]> {
+        return this.prisma.part.findMany({
+            select: partSelect,
+            where: { categoryId },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
         })
     }
 }
