@@ -25,7 +25,7 @@ cp .env.example .env          # then set JWT_SECRET: openssl rand -base64 48
 docker compose up -d          # PostgreSQL on :5432
 npx prisma migrate dev        # apply migrations
 npx prisma generate           # client → src/db/generated/prisma
-npx prisma db seed            # demo data for the dashboard
+npx prisma db seed            # test users, dashboard and catalogue demo data
 npm run dev                   # http://localhost:3002/api/health
 ```
 
@@ -46,11 +46,10 @@ The API fails on startup if a variable is missing (`src/config/env.ts`).
 | --- | --- | --- |
 | admin | `admin@autolincoln.local` | `admin12345` |
 | manager | `test@autolincoln.local` | `test12345` |
+| client | `client@autolincoln.local` | `client12345` |
 
-Local only. They are already in the Docker volume. `prisma/seed.ts` does not
-create users yet (the old user seed is still in
-`../архів/auto-lincoln-contracts/prisma/`), so after `prisma migrate reset` or
-`docker compose down -v` there are no users.
+Local only. `npx prisma db seed` creates them if they are missing and never
+changes an existing user. Roles are not enforced yet.
 
 ## Commands
 
@@ -62,7 +61,7 @@ create users yet (the old user seed is still in
 | `npm start` | run `dist/main.js` |
 | `npx prisma migrate dev --name <name>` | create and apply a migration |
 | `npx prisma generate` | regenerate the Prisma client (run it after every migration) |
-| `npx prisma db seed` | fill the dashboard tables with demo data (`prisma/seed.ts`, safe to re-run) |
+| `npx prisma db seed` | create the test users, fill the dashboard and catalogue tables with demo data (`prisma/seed.ts`, safe to re-run) |
 | `npx tsc --noEmit -p tsconfig.build.json` | type-check |
 
 ## API
@@ -74,6 +73,7 @@ create users yet (the old user seed is still in
 | GET | `/api/auth/me` | 200 `{ id, email, name }` · 401 |
 | POST | `/api/auth/logout` | 204, cookie cleared (no auth required) |
 | GET | `/api/dashboard` | 200 `DashboardResponse` · 401 |
+| GET | `/api/categories` | 200 `CategoriesResponse` (parts categories ordered by `order`) · 401 |
 
 **Dashboard** (`DashboardResponse` in the contracts) is built from these tables:
 
@@ -100,6 +100,7 @@ curl -c jar.txt -X POST http://localhost:3002/api/auth/login \
   -d '{"email":"admin@autolincoln.local","password":"admin12345"}'
 curl -b jar.txt http://localhost:3002/api/auth/me
 curl -b jar.txt http://localhost:3002/api/dashboard
+curl -b jar.txt http://localhost:3002/api/categories
 ```
 
 ## Support chat (WebSocket)
@@ -158,6 +159,8 @@ src/
 ├── modules/                one folder per feature
 │   ├── health/
 │   ├── dashboard/          GET /api/dashboard — service (Promise.all) + mappers/
+│   ├── catalogue/          GET /api/categories — controller per route prefix,
+│   │                       one service, mappers/
 │   ├── chat/               ws /ws/chat — gateway (handshake auth, validation, send)
 │   │                       + service (greeting, echo) + constants
 │   └── auth/
