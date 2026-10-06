@@ -18,7 +18,7 @@ export class PartsController {
             throw new BadRequestException('Query param "category" is required')
         }
 
-        const parts = await this.catalogueService.getPartsByCategory(query.category)
+        const parts = await this.catalogueService.getParts(query)
         return { items: parts.map(toPart), nextCursor: null }
     }
 }
