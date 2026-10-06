@@ -74,7 +74,10 @@ changes an existing user. Roles are not enforced yet.
 | POST | `/api/auth/logout` | 204, cookie cleared (no auth required) |
 | GET | `/api/dashboard` | 200 `DashboardResponse` · 401 |
 | GET | `/api/categories` | 200 `CategoriesResponse` (parts categories ordered by `order`) · 401 |
-| GET | `/api/parts?category=<id>` | 200 `PartsResponse` (all parts of the category, newest first) · 400 · 401 |
+| GET | `/api/carmakers` | 200 `CarmakersResponse` (ordered by `name`) · 401 |
+| GET | `/api/carmakers/:id/models` | 200 `CarModelsResponse` (models of the carmaker, ordered by `name`) · 401 |
+| GET | `/api/models/:id/engines` | 200 `EnginesResponse` (engines of the model, ordered by `name`) · 401 |
+| GET | `/api/parts?category=<id>&make&model&engine&search&limit` | 200 `PartsResponse` (newest first) · 400 · 401 |
 
 **Dashboard** (`DashboardResponse` in the contracts) is built from these tables:
 
@@ -87,16 +90,26 @@ changes an existing user. Roles are not enforced yet.
 | `stats` | `dashboard_stats` ordered by `order` |
 | `activity` | `monthly_activity` ordered by `month` (`'Jan'`, `'Feb'`, …) |
 
-**Parts** (`GET /api/parts`, query validated with `PartsQuerySchema`). For now
-only `category` is supported and it is required: without it → 400, not a uuid →
-400, unknown category → 200 with empty `items`. The whole category is returned
-at once, so `nextCursor` is always `null`. Each part has `compatibleEngineIds`
-(ids of the engines it fits); `price` is a number, `createdAt` an ISO string.
-The other query params of the contract (`make`, `model`, `engine`, `search`,
-`cursor`, `limit`) are accepted but not applied yet.
+**Carmakers / models / engines** feed the cascading filter selects. An unknown
+id in `/carmakers/:id/models` or `/models/:id/engines` returns `[]`, not 404.
 
-Category ids are new after every `npx prisma db seed`, so take them from a fresh
-`GET /api/categories`.
+**Parts** (`GET /api/parts`, query validated with `PartsQuerySchema`):
+
+- `category` is required: without it → 400, not a uuid → 400, unknown
+  category → 200 with empty `items`.
+- `engine`, `model`, `make` filter by compatibility. Only the most precise one
+  given is applied (engine → model → make), as a `compatibleEngines: { some }`
+  condition: a part matches if at least one engine it fits is that engine /
+  belongs to that model / belongs to a model of that carmaker.
+- `search` matches `title` or `articleNumber`, substring, case-insensitive.
+- `limit` (1–100, default 20) caps the number of items. `cursor` is accepted
+  but not applied yet, so `nextCursor` is always `null`.
+
+Each part has `compatibleEngineIds` (ids of the engines it fits); `price` is a
+number, `createdAt` an ISO string.
+
+Ids are new after every `npx prisma db seed`, so take them from a fresh
+`GET /api/categories` / `GET /api/carmakers`.
 
 Errors: `{ message, statusCode, error? }`.
 
@@ -113,7 +126,11 @@ curl -c jar.txt -X POST http://localhost:3002/api/auth/login \
 curl -b jar.txt http://localhost:3002/api/auth/me
 curl -b jar.txt http://localhost:3002/api/dashboard
 curl -b jar.txt http://localhost:3002/api/categories
+curl -b jar.txt http://localhost:3002/api/carmakers
+curl -b jar.txt http://localhost:3002/api/carmakers/<carmaker id>/models
+curl -b jar.txt http://localhost:3002/api/models/<model id>/engines
 curl -b jar.txt 'http://localhost:3002/api/parts?category=<category id>'
+curl -b jar.txt 'http://localhost:3002/api/parts?category=<category id>&make=<carmaker id>&search=filter'
 ```
 
 ## Support chat (WebSocket)
@@ -172,7 +189,7 @@ src/
 ├── modules/                one folder per feature
 │   ├── health/
 │   ├── dashboard/          GET /api/dashboard — service (Promise.all) + mappers/
-│   ├── catalogue/          GET /api/categories, GET /api/parts — controller per route prefix,
+│   ├── catalogue/          GET /api/categories, /carmakers, /models, /parts — controller per route prefix,
 │   │                       one service, mappers/
 │   ├── chat/               ws /ws/chat — gateway (handshake auth, validation, send)
 │   │                       + service (greeting, echo) + constants
