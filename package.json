@@ -8,7 +8,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@auto-lincoln/contracts": "file:../auto-lincoln-contracts",
+    "@auto-lincoln/contracts": "git+https://github.com/romanonyshko/auto-lincoln-contracts.git",
     "@nestjs/common": "^12.1.0",
     "@nestjs/core": "^12.1.0",
     "@nestjs/platform-express": "^12.1.0",
@@ -32,5 +32,8 @@
     "prisma": "7.10.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0"
+  },
+  "allowScripts": {
+    "github:romanonyshko/auto-lincoln-contracts": true
   }
 }

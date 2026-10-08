@@ -1,11 +1,11 @@
-import { AUTH_COOKIE_NAME, ClientChatEventSchema, WS_ROUTES, type ServerChatEvent } from "@auto-lincoln/contracts";
+import { AUTH_COOKIE_NAME, ClientChatEventSchema, WS_ROUTES, WS_TICKET_PARAM, type ServerChatEvent } from "@auto-lincoln/contracts";
 import { WebSocketGateway, type OnGatewayConnection, type OnGatewayDisconnect } from "@nestjs/websockets";
 import { ChatService } from "./chat.service.js";
 import type { IncomingMessage } from "node:http"
 import type { WebSocket } from 'ws'
 import { env } from '../../config/env.js';
 import { parseCookie } from "cookie";
-import { verifySession, type Session } from "../auth/lib/session.js";
+import { verifySession, verifyWsTicket, type Session } from "../auth/lib/session.js";
 import { z } from "zod"
 
 
@@ -15,7 +15,15 @@ export class ChatGateway implements OnGatewayConnection<WebSocket>, OnGatewayDis
 
     constructor(private readonly chatService: ChatService) { }
 
+    // Production: the web app proxies HTTP, so the cookie never reaches this
+    // domain and the client passes a ticket instead. Local dev: same site, cookie works.
     private async authenticate(req: IncomingMessage): Promise<Session | null> {
+        const ticket = new URL(req.url ?? '', 'http://localhost').searchParams.get(WS_TICKET_PARAM)
+        if (ticket) {
+            try { return await verifyWsTicket(ticket, env.jwtSecret) }
+            catch { return null }
+        }
+
         const token = parseCookie(req.headers.cookie ?? '')[AUTH_COOKIE_NAME]
 
         if (!token) { return null }

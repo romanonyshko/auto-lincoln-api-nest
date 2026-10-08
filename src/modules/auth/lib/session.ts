@@ -29,3 +29,21 @@ export async function verifySession(token: string, secret: string): Promise<Sess
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret))
   return { userId: payload.sub as string, role: payload.role as UserRole }
 }
+
+const WS_TICKET_AUDIENCE = 'ws-chat'
+
+// One-time pass for the chat WebSocket handshake; lives just long enough to connect.
+export function signWsTicket(session: Session, secret: string) {
+  return new SignJWT({ role: session.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(session.userId)
+    .setAudience(WS_TICKET_AUDIENCE)
+    .setIssuedAt()
+    .setExpirationTime('60s')
+    .sign(new TextEncoder().encode(secret))
+}
+
+export async function verifyWsTicket(ticket: string, secret: string): Promise<Session> {
+  const { payload } = await jwtVerify(ticket, new TextEncoder().encode(secret), { audience: WS_TICKET_AUDIENCE })
+  return { userId: payload.sub as string, role: payload.role as UserRole }
+}
